@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>PBIX Raporu — {{ job.filename }}</title>
+<style>
+  @page { margin: 2cm; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1a1a1a; }
+  h1 { font-size: 16pt; color: #1e3a5f; margin-bottom: 4pt; }
+  h2 { font-size: 12pt; color: #1e3a5f; margin: 16pt 0 8pt; border-bottom: 1pt solid #ccc; padding-bottom: 4pt; }
+  .meta { font-size: 9pt; color: #666; margin-bottom: 16pt; }
+  .scores { display: flex; gap: 12pt; margin-bottom: 16pt; }
+  .score-box { border: 1pt solid #ddd; border-radius: 6pt; padding: 8pt 12pt; text-align: center; min-width: 80pt; }
+  .score-val { font-size: 20pt; font-weight: bold; }
+  .score-lbl { font-size: 8pt; color: #666; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; margin-bottom: 12pt; }
+  th { background: #f0f4f8; padding: 4pt 6pt; text-align: left; font-weight: 600; }
+  td { padding: 4pt 6pt; border-bottom: 0.5pt solid #eee; }
+  .warn { background: #fffbeb; border-left: 3pt solid #f59e0b; padding: 4pt 8pt; margin: 4pt 0; font-size: 9pt; }
+</style>
+</head>
+<body>
+<h1>Power BI Diagnostic Raporu</h1>
+<div class="meta">{{ job.filename }} — Analiz tarihi: {{ job.completed_at.strftime('%d.%m.%Y %H:%M') if job.completed_at else 'N/A' }}</div>
+
+<div class="scores">
+  <div class="score-box"><div class="score-val">{{ scores.overall }}</div><div class="score-lbl">Genel</div></div>
+  <div class="score-box"><div class="score-val">{{ scores.model }}</div><div class="score-lbl">Model</div></div>
+  <div class="score-box"><div class="score-val">{{ scores.dax }}</div><div class="score-lbl">DAX</div></div>
+  <div class="score-box"><div class="score-val">{{ scores.visuals }}</div><div class="score-lbl">Visual</div></div>
+  <div class="score-box"><div class="score-val">{{ scores.size }}</div><div class="score-lbl">Boyut</div></div>
+</div>
+
+{% if result and result.model %}
+<h2>Veri Modeli</h2>
+{% for w in [result.model.many_to_many_relations, result.model.bidirectional_relations] %}{% if w %}<div class="warn">⚠ Dikkat: performans riski tespit edildi.</div>{% endif %}{% endfor %}
+<table>
+  <tr><th>Tablo</th><th>Kolon</th><th>Measure</th><th>Inc. Refresh</th></tr>
+  {% for t in result.model.tables %}<tr><td>{{ t.name }}</td><td>{{ t.column_count }}</td><td>{{ t.measure_count }}</td><td>{{ 'Evet' if t.incremental_refresh else 'Hayır' }}</td></tr>{% endfor %}
+</table>
+{% endif %}
+
+{% if result and result.dax and result.dax.measures %}
+<h2>DAX — En Riskli Measure'lar</h2>
+<table>
+  <tr><th>Measure</th><th>Risk</th><th>Sorun</th></tr>
+  {% for m in result.dax.measures | sort(attribute='risk_score', reverse=True) | list %}{% if loop.index <= 10 %}<tr><td>{{ m.name }}</td><td>{{ m.risk_score }}</td><td>{{ m.issues | join(', ') or '—' }}</td></tr>{% endif %}{% endfor %}
+</table>
+{% endif %}
+
+{% if result and result.visuals %}
+<h2>Visual Analizi</h2>
+{% for w in result.visuals.warnings %}<div class="warn">⚠ {{ w }}</div>{% endfor %}
+<table>
+  <tr><th>Sayfa</th><th>Visual</th><th>Slicer</th><th>Custom</th></tr>
+  {% for p in result.visuals.pages %}<tr><td>{{ p.name }}</td><td>{{ p.visual_count }}</td><td>{{ p.slicer_count }}</td><td>{{ p.custom_visual_count }}</td></tr>{% endfor %}
+</table>
+{% endif %}
+</body>
+</html>

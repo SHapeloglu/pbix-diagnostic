@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PBIX Analiz Raporu — {{ job.filename }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
+  .header { background: #1e3a5f; color: white; padding: 2rem; }
+  .header h1 { font-size: 1.5rem; font-weight: 600; }
+  .header p { opacity: 0.7; margin-top: 0.25rem; font-size: 0.9rem; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+  .scores { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .score-card { background: white; border-radius: 12px; padding: 1.25rem; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .score-card .value { font-size: 2.5rem; font-weight: 700; }
+  .score-card .label { font-size: 0.8rem; color: #666; margin-top: 0.25rem; }
+  .score-high { color: #1a7f4b; }
+  .score-medium { color: #b45309; }
+  .score-low { color: #b91c1c; }
+  .section { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .section h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.75rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th { background: #f8f8f8; padding: 0.5rem 0.75rem; text-align: left; font-weight: 500; color: #555; }
+  td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #f0f0f0; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; }
+  .badge-high { background: #fee2e2; color: #b91c1c; }
+  .badge-medium { background: #fef3c7; color: #92400e; }
+  .badge-low { background: #d1fae5; color: #065f46; }
+  .warning { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 0.75rem 1rem; margin-bottom: 0.5rem; border-radius: 0 8px 8px 0; font-size: 0.875rem; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Power BI Diagnostic Raporu</h1>
+  <p>{{ job.filename }} — {{ job.completed_at.strftime('%d.%m.%Y %H:%M') if job.completed_at else '' }}</p>
+</div>
+<div class="container">
+
+  <!-- Skor Kartları -->
+  <div class="scores">
+    {% set overall = scores.overall or 0 %}
+    <div class="score-card">
+      <div class="value {% if overall >= 70 %}score-high{% elif overall >= 40 %}score-medium{% else %}score-low{% endif %}">{{ overall }}</div>
+      <div class="label">Genel Skor</div>
+    </div>
+    <div class="score-card">
+      <div class="value {% if scores.model >= 70 %}score-high{% elif scores.model >= 40 %}score-medium{% else %}score-low{% endif %}">{{ scores.model }}</div>
+      <div class="label">Veri Modeli</div>
+    </div>
+    <div class="score-card">
+      <div class="value {% if scores.dax >= 70 %}score-high{% elif scores.dax >= 40 %}score-medium{% else %}score-low{% endif %}">{{ scores.dax }}</div>
+      <div class="label">DAX</div>
+    </div>
+    <div class="score-card">
+      <div class="value {% if scores.visuals >= 70 %}score-high{% elif scores.visuals >= 40 %}score-medium{% else %}score-low{% endif %}">{{ scores.visuals }}</div>
+      <div class="label">Visuals</div>
+    </div>
+    <div class="score-card">
+      <div class="value {% if scores.size >= 70 %}score-high{% elif scores.size >= 40 %}score-medium{% else %}score-low{% endif %}">{{ scores.size }}</div>
+      <div class="label">Boyut</div>
+    </div>
+  </div>
+
+  <!-- Veri Modeli -->
+  {% if result and result.model %}
+  <div class="section">
+    <h2>Veri Modeli Analizi</h2>
+    <p style="margin-bottom:1rem;font-size:0.875rem;color:#555">
+      Toplam {{ result.model.total_table_count }} tablo, {{ result.model.total_column_count }} kolon
+      | M:M ilişki: {{ result.model.many_to_many_relations|length }}
+      | Bi-directional: {{ result.model.bidirectional_relations|length }}
+    </p>
+    {% if result.model.many_to_many_relations %}
+    <div class="warning">⚠ {{ result.model.many_to_many_relations|length }} adet Many-to-Many ilişki tespit edildi. Performansı olumsuz etkiler.</div>
+    {% endif %}
+    {% if result.model.bidirectional_relations %}
+    <div class="warning">⚠ {{ result.model.bidirectional_relations|length }} adet çift yönlü filtre ilişkisi var. Gereksizse tek yöne çevirin.</div>
+    {% endif %}
+    {% if result.model.high_cardinality_columns %}
+    <div class="warning">⚠ {{ result.model.high_cardinality_columns|length }} adet yüksek kardinalite / GUID kolon tespit edildi.</div>
+    {% endif %}
+    <table>
+      <tr><th>Tablo</th><th>Kolon</th><th>Measure</th><th>Incremental Refresh</th></tr>
+      {% for t in result.model.tables %}
+      <tr>
+        <td>{{ t.name }}</td>
+        <td>{{ t.column_count }}</td>
+        <td>{{ t.measure_count }}</td>
+        <td>{% if t.incremental_refresh %}<span class="badge badge-low">Aktif</span>{% else %}<span class="badge badge-medium">Yok</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- DAX Analizi -->
+  {% if result and result.dax %}
+  <div class="section">
+    <h2>DAX Analizi</h2>
+    <p style="margin-bottom:1rem;font-size:0.875rem;color:#555">
+      Toplam {{ result.dax.total_measure_count }} measure
+      | Yüksek risk: {{ result.dax.high_risk_count }}
+      | Orta risk: {{ result.dax.medium_risk_count or 0 }}
+      | Ort. karmaşıklık: {{ result.dax.summary.avg_complexity }}/100
+    </p>
+    {% if result.dax.measures %}
+    <table>
+      <tr><th>Measure</th><th>Tablo</th><th>Risk Skoru</th><th>Sorunlar</th></tr>
+      {% for m in result.dax.measures | sort(attribute='risk_score', reverse=True) %}
+      <tr>
+        <td>{{ m.name }}</td>
+        <td>{{ m.table }}</td>
+        <td><span class="badge badge-{{ m.risk_level }}">{{ m.risk_score }}</span></td>
+        <td style="font-size:0.8rem;color:#555">{{ m.issues | join(', ') or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Visual Analizi -->
+  {% if result and result.visuals %}
+  <div class="section">
+    <h2>Visual Analizi</h2>
+    <p style="margin-bottom:1rem;font-size:0.875rem;color:#555">
+      {{ result.visuals.total_page_count }} sayfa
+      | {{ result.visuals.total_visual_count }} visual
+      | {{ result.visuals.slicer_count }} slicer
+      | {{ result.visuals.custom_visual_count }} custom visual
+    </p>
+    {% for w in result.visuals.warnings %}
+    <div class="warning">⚠ {{ w }}</div>
+    {% endfor %}
+    <table>
+      <tr><th>Sayfa</th><th>Visual</th><th>Slicer</th><th>Ağır Visual</th><th>Custom</th></tr>
+      {% for p in result.visuals.pages %}
+      <tr>
+        <td>{{ p.name }}</td>
+        <td>{% if p.visual_count > 15 %}<span class="badge badge-high">{{ p.visual_count }}</span>{% elif p.visual_count > 8 %}<span class="badge badge-medium">{{ p.visual_count }}</span>{% else %}{{ p.visual_count }}{% endif %}</td>
+        <td>{{ p.slicer_count }}</td>
+        <td>{{ p.heavy_visual_count }}</td>
+        <td>{{ p.custom_visual_count }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+</div>
+</body>
+</html>

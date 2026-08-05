@@ -1,0 +1,14 @@
+[Unit]
+Description=PBIX Diagnostic FastAPI
+After=network.target postgresql.service redis.service
+
+[Service]
+User=pbixapp
+WorkingDirectory=/home/pbixapp/app
+Environment=PATH=/home/pbixapp/app/venv/bin
+ExecStart=/home/pbixapp/app/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8000 --workers 4
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

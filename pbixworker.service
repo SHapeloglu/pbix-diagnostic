@@ -1,0 +1,14 @@
+[Unit]
+Description=PBIX Diagnostic Celery Worker
+After=network.target redis.service
+
+[Service]
+User=pbixapp
+WorkingDirectory=/home/pbixapp/app
+Environment=PATH=/home/pbixapp/app/venv/bin
+ExecStart=/home/pbixapp/app/venv/bin/celery -A app.worker.celery_app worker --loglevel=info --concurrency=3
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
