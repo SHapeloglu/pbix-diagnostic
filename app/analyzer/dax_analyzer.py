@@ -2,6 +2,7 @@
 DAX Analyzer — pbixray'in dax_measures çıktısından measure metinlerini
 çıkarır, karmaşıklık skoru üretir. Girdi artık pbixray DataFrame'inden
 to_dict("records") ile dönüştürülmüş düz liste (TableName, Name,
+
 Expression, DisplayFolder, Description alanları). pandas kullanılmaz.
 """
 import re
@@ -17,7 +18,7 @@ def analyze_dax(measure_records: list) -> dict:
         for measure in measure_records:
             tname = measure.get("TableName", "")
             mname = measure.get("Name", "")
-            expression = measure.get("Expression", "") or ""
+            expression = str(measure.get("Expression", "") or "")
             if isinstance(expression, list):
                 expression = "\n".join(expression)
             scored = _score_measure(mname, expression, tname)
