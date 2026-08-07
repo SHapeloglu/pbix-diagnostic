@@ -20,5 +20,5 @@ email-validator==2.2.0
 # "pandas yasak" kurali bu tek modul icin istisna tutuldu -- bkz. CLAUDE.md
 # "Mimari Kararlar" bolumu. on_disk=True ile kullanildiginda RAM riski
 # minimaldir (bkz. app/analyzer/pbix_parser.py).
-pbixray==0.10.0
+pbixray==0.15.4
 pandas
