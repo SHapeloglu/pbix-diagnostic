@@ -16,28 +16,31 @@ def analyze_model(
     statistics_records: list,
     power_query_records: list,
     model_size_bytes: int,
+    rls_records: list = None,
+    kpi_records: list = None,
 ) -> dict:
     result = {
         "tables": [],
         "relations": [],
         "many_to_many_relations": [],
         "bidirectional_relations": [],
-        "unused_columns": [],  # bkz. asagidaki NOT
+        "unused_columns": [],
         "high_cardinality_columns": [],
         "total_table_count": 0,
         "total_column_count": 0,
         "star_schema_score": 0,
         "model_size_mb": round((model_size_bytes or 0) / (1024 * 1024), 2),
+        "rls_enabled": False,
+        "rls_roles": [],
+        "kpis": [],
     }
 
     try:
-        # Kolon basina istatistik (kardinalite) haritasi
         stats_by_col = {
             (s.get("TableName"), s.get("ColumnName")): s
             for s in statistics_records
         }
 
-        # Tablo -> kolon listesi
         columns_by_table = {}
         for row in schema_records:
             tname = row.get("TableName", "unknown")
@@ -59,9 +62,6 @@ def analyze_model(
                         {"table": tname, "column": cname, "reason": "GUID/binary"}
                     )
 
-                # Gercek kardinalite verisi varsa onu kullan (isim uzunlugu
-                # degil -- eski kodun hatasi buydu: kolon adinin
-                # UZUNLUGUNA bakiyordu, verinin kardinalitesine degil).
                 stat = stats_by_col.get((tname, cname))
                 if stat is not None:
                     cardinality = stat.get("Cardinality", 0) or 0
@@ -72,12 +72,12 @@ def analyze_model(
                              "reason": f"yuksek kardinalite metin ({cardinality} benzersiz deger)"}
                         )
 
-            measure_count = 0  # DAX measure sayisi ayri olarak dax_analyzer'da hesaplanir
+            measure_count = 0
             table_entry = {
                 "name": tname,
                 "column_count": len(columns),
                 "measure_count": measure_count,
-                "has_partitions": None,  # pbixray dogrudan partition sayisi vermiyor
+                "has_partitions": None,
                 "incremental_refresh": _has_incremental_refresh(tname, power_query_records),
                 "columns": col_info,
             }
@@ -91,7 +91,6 @@ def analyze_model(
 
         result["total_table_count"] = len(table_names)
 
-        # Iliskiler
         for rel in relationship_records:
             from_table = rel.get("FromTableName", "")
             to_table = rel.get("ToTableName", "")
@@ -119,12 +118,26 @@ def analyze_model(
             fact_tables, dim_tables, result["many_to_many_relations"]
         )
 
-        # NOT: "unused_columns" (raporda hicbir visual'da kullanilmayan
-        # kolonlar) icin Report/Layout'taki visual query binding'lerini
-        # bu kolonlarla capraz referanslamak gerekir -- bu, orijinal
-        # kodda da hic implemente edilmemisti (ARCHITECTURE.md'de
-        # dokumante edilmis ama calismiyor bir ozellikti). Kapsam disi
-        # birakildi, liste bos donuyor. Ayri bir gorev olarak ele alinmali.
+        # RLS
+        for row in (rls_records or []):
+            role_name = row.get("Name") or row.get("RoleName") or ""
+            if role_name:
+                result["rls_roles"].append({
+                    "name": role_name,
+                    "model_permission": row.get("ModelPermission", ""),
+                    "description": row.get("Description", ""),
+                })
+        result["rls_enabled"] = len(result["rls_roles"]) > 0
+
+        # KPI
+        for row in (kpi_records or []):
+            measure_name = row.get("Name") or row.get("KPIName") or ""
+            if measure_name:
+                result["kpis"].append({
+                    "name": measure_name,
+                    "target_expression": row.get("TargetExpression", ""),
+                    "status_type": row.get("StatusType", ""),
+                })
 
     except Exception as e:
         result["parse_error"] = str(e)
@@ -139,12 +152,6 @@ def _is_guid_column(name: str, dtype: str) -> bool:
 
 
 def _has_incremental_refresh(table_name: str, power_query_records: list) -> bool:
-    """
-    pbixray dogrudan partition/incremental-refresh bayragi vermiyor.
-    Standart Power BI incremental refresh implementasyonu RangeStart/
-    RangeEnd parametrelerini M kodunda kullanir -- bunu ariyoruz.
-    Kesin degil, sezgisel bir tespit.
-    """
     for row in power_query_records:
         if row.get("TableName") == table_name:
             expr = str(row.get("Expression", ""))

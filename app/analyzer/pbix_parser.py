@@ -1,7 +1,7 @@
 """
 PBIX Parser - Ana koordinator.
 
-pbixray 0.10.0: PBIXRay(file_path) -- context manager desteklemiyor,
+pbixray 0.15.4: PBIXRay(file_path) -- context manager desteklemiyor,
 with blogu kullanilmaz, dogrudan attribute erisimi yapilir.
 """
 import json
@@ -78,6 +78,16 @@ def _parse_data_model(file_path: str):
         except Exception:
             table_names = sorted({r.get("TableName") for r in schema_records if r.get("TableName")})
 
+        try:
+            rls_records = model.rls.to_dict("records")
+        except Exception:
+            rls_records = []
+
+        try:
+            kpi_records = model.tmschema_kpis.to_dict("records")
+        except Exception:
+            kpi_records = []
+
     finally:
         del model
         gc.collect()
@@ -89,6 +99,8 @@ def _parse_data_model(file_path: str):
         statistics_records=statistics_records,
         power_query_records=pq_records + dax_table_records,
         model_size_bytes=model_size_bytes,
+        rls_records=rls_records,
+        kpi_records=kpi_records,
     )
     dax_result = analyze_dax(measure_records)
     return model_result, dax_result
