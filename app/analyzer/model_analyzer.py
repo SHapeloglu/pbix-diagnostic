@@ -7,6 +7,10 @@ pandas bu dosyada KULLANILMAZ -- pbix_parser.py DataFrame'leri zaten
 to_dict("records") ile duz Python'a ceviriyor, bu modul saf dict/list
 uzerinde calisir.
 """
+import re
+
+_IP_PATTERN = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+_SERVER_PATTERN = re.compile(r'(?:Sql\.Database|Sql\.Databases|Odbc\.Query|Server\s*=)\s*\(?\s*"([^"]+)"', re.IGNORECASE)
 
 
 def analyze_model(
@@ -18,6 +22,8 @@ def analyze_model(
     model_size_bytes: int,
     rls_records: list = None,
     kpi_records: list = None,
+    calc_group_records: list = None,
+    m_parameter_records: list = None,
 ) -> dict:
     result = {
         "tables": [],
@@ -33,6 +39,9 @@ def analyze_model(
         "rls_enabled": False,
         "rls_roles": [],
         "kpis": [],
+        "calculation_groups": [],
+        "m_parameters": [],
+        "exposed_connections": [],
     }
 
     try:
@@ -137,6 +146,40 @@ def analyze_model(
                     "name": measure_name,
                     "target_expression": row.get("TargetExpression", ""),
                     "status_type": row.get("StatusType", ""),
+                })
+
+        # Calculation Groups
+        for row in (calc_group_records or []):
+            table_name = row.get("TableName") or ""
+            if table_name:
+                result["calculation_groups"].append({
+                    "table_name": table_name,
+                    "description": row.get("Description", ""),
+                    "precedence": row.get("Precedence", None),
+                })
+
+        # M Parameters + hijyen: baglanti bilgisi (IP/sunucu adi) sorgu icinde acik mi
+        for row in (m_parameter_records or []):
+            pname = row.get("ParameterName") or ""
+            if not pname:
+                continue
+            expr = str(row.get("Expression", "") or "")
+            exposed_server = _SERVER_PATTERN.search(expr)
+            exposed_ip = _IP_PATTERN.search(expr)
+            is_exposed = bool(exposed_server or exposed_ip)
+
+            entry = {
+                "name": pname,
+                "description": row.get("Description", ""),
+                "exposes_connection_info": is_exposed,
+            }
+            result["m_parameters"].append(entry)
+
+            if is_exposed:
+                detail = exposed_server.group(1) if exposed_server else exposed_ip.group(0)
+                result["exposed_connections"].append({
+                    "parameter": pname,
+                    "detail": detail,
                 })
 
     except Exception as e:

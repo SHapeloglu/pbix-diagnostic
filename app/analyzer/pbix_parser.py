@@ -88,6 +88,16 @@ def _parse_data_model(file_path: str):
         except Exception:
             kpi_records = []
 
+        try:
+            calc_group_records = model.tmschema_calculation_groups.to_dict("records")
+        except Exception:
+            calc_group_records = []
+
+        try:
+            m_parameter_records = model.m_parameters.to_dict("records")
+        except Exception:
+            m_parameter_records = []
+
     finally:
         del model
         gc.collect()
@@ -101,6 +111,8 @@ def _parse_data_model(file_path: str):
         model_size_bytes=model_size_bytes,
         rls_records=rls_records,
         kpi_records=kpi_records,
+        calc_group_records=calc_group_records,
+        m_parameter_records=m_parameter_records,
     )
     dax_result = analyze_dax(measure_records)
     return model_result, dax_result
@@ -125,6 +137,9 @@ def _calculate_scores(result: dict) -> dict:
     model_penalties += min(len(model.get("bidirectional_relations", [])) * 10, 30)
     model_penalties += min(len(model.get("unused_columns", [])) * 2, 20)
     model_score = max(0, 100 - model_penalties)
+
+    # exposed_connections skoru etkilemez -- ayri bir guvenlik/hijyen
+    # bulgusu olarak result["model"]["exposed_connections"] icinde kalir
 
     dax = result.get("dax", {})
     high_risk = [m for m in dax.get("measures", []) if m.get("risk_score", 0) >= 70]
