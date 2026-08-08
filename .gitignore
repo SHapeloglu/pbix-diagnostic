@@ -8,3 +8,4 @@ results/
 logs/
 *.zip
 alembic/versions/
+*.bak
