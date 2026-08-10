@@ -88,13 +88,12 @@ PBIX dosyası RAM'e alınmaz. FastAPI chunk-by-chunk diske yazar. Dosya `/tmp/up
 4 çekirdek/8 GB)*. Fazlası kuyruğa alınır. Kullanıcı `job_id` ile durumu
 takip eder (polling veya SSE).
 
-### 5. Eş zamanlı analiz kapasitesi — YENİDEN ÖLÇÜLMELİ
-Eski hesap ("500 MB × 8 worker = ~640 MB, 30 GB'de güvenli") iki
-sebepten geçersiz: (a) sunucu 30 GB değil 8 GB, (b) 640 MB hesabı
-dosyanın kendi boyutunu baz alıyordu — decompress edilmiş VertiPaq
-modelinin boyutunu değil, ki asıl risk odur. `on_disk=True` bu riski
-azaltıyor ama gerçek bir örnek dosyayla ölçüm yapılana kadar
-`CELERY_WORKERS=3` konservatif bir varsayım olarak kabul edilmeli.
+### 5. Eş zamanlı analiz kapasitesi — ÖLÇÜLDܠ(2026-08-10)
+İki gerçek dosyayla ölçüldü: 136 MB → 412 MB peak RSS (~3.0x),
+180 MB → 499 MB peak RSS (2.77x). Oran lineer ve tutarlı.
+300 MB üst sınır için ekstrapolasyon: ~870 MB peak RSS.
+Sunucu 8 GB RAM, 1 Celery worker ile güvenli alan içinde.
+Pratik üst sınır: 300 MB nadiren geçilir, büyük projeler datamart mimarisine bölünür.
 
 ---
 

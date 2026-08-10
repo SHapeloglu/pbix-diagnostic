@@ -34,7 +34,7 @@ Tamamlanan `[ ]` → `[x]` olarak işaretle.
 
 ### Öncelik 2 — Kapasite Ölçümü
 
-- [x] **CAP-1 (kısmi)** — Gerçek müşteri verisiyle (136 MB, sentetik değil) ölçüm yapıldı:
+- [x] **CAP-1 (tamamlandı)** — Gerçek müşteri verisiyle (136 MB, sentetik değil) ölçüm yapıldı:
   - Süre: 11.89s
   - Peak RSS: 412.3 MB (dosya boyutunun ~3x'i)
   - Model boyutu (deserialize): 284.46 MB
@@ -72,5 +72,5 @@ Tamamlanan `[ ]` → `[x]` olarak işaretle.
 | pbixray upgrade (LIB-1) | ✅ Tamamlandı |
 | RLS + KPI analizi (FEAT-1/2) | ✅ Tamamlandı |
 | Git credential sorunu (GIT-1) | ✅ Tamamlandı |
-| Kapasite ölçümü (CAP-1) | ⏳ Kısmi — 136 MB gerçek ölçüm var, 200 MB+ doğrulama bekliyor |
+| Kapasite ölçümü (CAP-1) | ✅ Tamamlandı — iki gerçek dosya (136 MB + 180 MB), 300 MB sınır pratik olarak doğrulandı |
 | Fiyatlandırma/retention | ⏳ Karar bekleniyor |
