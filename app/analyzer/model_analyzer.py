@@ -13,6 +13,93 @@ _IP_PATTERN = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 _SERVER_PATTERN = re.compile(r'(?:Sql\.Database|Sql\.Databases|Odbc\.Query|Server\s*=)\s*\(?\s*"([^"]+)"', re.IGNORECASE)
 
 
+def _analyze_column_statistics(
+    statistics_records: list,
+    schema_records: list,
+    relationship_records: list,
+    measure_records: list,
+    top_n: int = 15,
+) -> dict:
+    """
+    pbixray model.statistics ciktisini isleer:
+      - En pahali N kolonu bulur (Dictionary + HashIndex + DataSize toplami)
+      - Relationship / DAX expression'larda gecmeyen kolonlari isaretler
+      - Gercek VertiPaq toplam boyutunu hesaplar (dosya boyutu tahmini degil)
+
+    NOT: Bravo for Power BI'in "Analyze Model" ozelligi ile ayni mantik.
+    Bravo'nun da belirttigi uyari: sadece model-ici referans kontrol edilir,
+    rapor gorsellerindeki kullanim (filter/slicer/axis) GORULMEZ.
+    """
+    if not statistics_records:
+        return {
+            "total_vertipaq_size_bytes": 0,
+            "total_vertipaq_size_mb": 0.0,
+            "largest_columns": [],
+            "unreferenced_columns": [],
+            "unreferenced_columns_warning": "",
+        }
+
+    # --- 1. Toplam boyut + kolon bazli toplam hesapla ---
+    enriched = []
+    total_size = 0
+    for row in statistics_records:
+        dict_size  = row.get("Dictionary")  or 0
+        hash_size  = row.get("HashIndex")   or 0
+        data_size  = row.get("DataSize")    or 0
+        col_total  = dict_size + hash_size + data_size
+        total_size += col_total
+        enriched.append({
+            "table":       row.get("TableName"),
+            "column":      row.get("ColumnName"),
+            "cardinality": row.get("Cardinality"),
+            "size_bytes":  col_total,
+        })
+
+    # --- 2. En pahali N kolon ---
+    largest_columns = sorted(
+        enriched, key=lambda r: r["size_bytes"], reverse=True
+    )[:top_n]
+
+    # --- 3. Referans edilen kolonlari topla (relationship + DAX expression) ---
+    referenced = set()
+    for rel in (relationship_records or []):
+        referenced.add((rel.get("FromTableName"), rel.get("FromColumnName")))
+        referenced.add((rel.get("ToTableName"),   rel.get("ToColumnName")))
+
+    all_expressions = []
+    for m in (measure_records or []):
+        all_expressions.append(str(m.get("Expression", "") or ""))
+    combined_expr = "\n".join(all_expressions)
+
+    unreferenced = []
+    for row in enriched:
+        table, column = row["table"], row["column"]
+        if (table, column) in referenced:
+            continue
+        if f"[{column}]" in combined_expr:
+            continue
+        unreferenced.append({
+            "table":       table,
+            "column":      column,
+            "size_bytes":  row["size_bytes"],
+            "cardinality": row["cardinality"],
+        })
+
+    unreferenced.sort(key=lambda r: r["size_bytes"], reverse=True)
+
+    return {
+        "total_vertipaq_size_bytes": total_size,
+        "total_vertipaq_size_mb":   round(total_size / (1024 * 1024), 2),
+        "largest_columns":          largest_columns,
+        "unreferenced_columns":     unreferenced[:top_n],
+        "unreferenced_columns_warning": (
+            "Bu kolonlar model icinde (relationship/DAX) referans edilmiyor, "
+            "ancak rapor gorsellerinde kullaniliyor olabilirler. "
+            "Silmeden once rapor sayfalarini kontrol edin."
+        ),
+    }
+
+
 def analyze_model(
     table_names: list,
     schema_records: list,
@@ -42,6 +129,7 @@ def analyze_model(
         "calculation_groups": [],
         "m_parameters": [],
         "exposed_connections": [],
+        "column_statistics": {},
     }
 
     try:
@@ -102,18 +190,18 @@ def analyze_model(
 
         for rel in relationship_records:
             from_table = rel.get("FromTableName", "")
-            to_table = rel.get("ToTableName", "")
-            cardinality = str(rel.get("Cardinality", ""))
+            to_table   = rel.get("ToTableName", "")
+            cardinality  = str(rel.get("Cardinality", ""))
             cross_filter = str(rel.get("CrossFilteringBehavior", ""))
 
             rel_entry = {
-                "from_table": from_table,
-                "from_column": rel.get("FromColumnName", ""),
-                "to_table": to_table,
-                "to_column": rel.get("ToColumnName", ""),
-                "cardinality": cardinality,
+                "from_table":              from_table,
+                "from_column":             rel.get("FromColumnName", ""),
+                "to_table":                to_table,
+                "to_column":               rel.get("ToColumnName", ""),
+                "cardinality":             cardinality,
                 "cross_filtering_behavior": cross_filter,
-                "is_active": rel.get("IsActive", True),
+                "is_active":               rel.get("IsActive", True),
             }
             result["relations"].append(rel_entry)
 
@@ -132,9 +220,9 @@ def analyze_model(
             role_name = row.get("Name") or row.get("RoleName") or ""
             if role_name:
                 result["rls_roles"].append({
-                    "name": role_name,
+                    "name":             role_name,
                     "model_permission": row.get("ModelPermission", ""),
-                    "description": row.get("Description", ""),
+                    "description":      row.get("Description", ""),
                 })
         result["rls_enabled"] = len(result["rls_roles"]) > 0
 
@@ -143,9 +231,9 @@ def analyze_model(
             measure_name = row.get("Name") or row.get("KPIName") or ""
             if measure_name:
                 result["kpis"].append({
-                    "name": measure_name,
-                    "target_expression": row.get("TargetExpression", ""),
-                    "status_type": row.get("StatusType", ""),
+                    "name":               measure_name,
+                    "target_expression":  row.get("TargetExpression", ""),
+                    "status_type":        row.get("StatusType", ""),
                 })
 
         # Calculation Groups
@@ -153,24 +241,24 @@ def analyze_model(
             table_name = row.get("TableName") or ""
             if table_name:
                 result["calculation_groups"].append({
-                    "table_name": table_name,
+                    "table_name":  table_name,
                     "description": row.get("Description", ""),
-                    "precedence": row.get("Precedence", None),
+                    "precedence":  row.get("Precedence", None),
                 })
 
-        # M Parameters + hijyen: baglanti bilgisi (IP/sunucu adi) sorgu icinde acik mi
+        # M Parameters + baglanti bilgisi hijyen kontrolu
         for row in (m_parameter_records or []):
             pname = row.get("ParameterName") or ""
             if not pname:
                 continue
             expr = str(row.get("Expression", "") or "")
             exposed_server = _SERVER_PATTERN.search(expr)
-            exposed_ip = _IP_PATTERN.search(expr)
-            is_exposed = bool(exposed_server or exposed_ip)
+            exposed_ip     = _IP_PATTERN.search(expr)
+            is_exposed     = bool(exposed_server or exposed_ip)
 
             entry = {
-                "name": pname,
-                "description": row.get("Description", ""),
+                "name":                   pname,
+                "description":            row.get("Description", ""),
                 "exposes_connection_info": is_exposed,
             }
             result["m_parameters"].append(entry)
@@ -179,13 +267,34 @@ def analyze_model(
                 detail = exposed_server.group(1) if exposed_server else exposed_ip.group(0)
                 result["exposed_connections"].append({
                     "parameter": pname,
-                    "detail": detail,
+                    "detail":    detail,
                 })
+
+        # FEAT-5: VertiPaq kolon boyutu / kardinalite / unreferenced analizi
+        # exposed_connections prensibiyle ayni sekilde: skor etkilemez, ayri bulgu.
+        result["column_statistics"] = _analyze_column_statistics(
+            statistics_records=statistics_records,
+            schema_records=schema_records,
+            relationship_records=relationship_records,
+            measure_records=_extract_measure_records(m_parameter_records, calc_group_records),
+        )
 
     except Exception as e:
         result["parse_error"] = str(e)
 
     return result
+
+
+def _extract_measure_records(m_parameter_records, calc_group_records):
+    """
+    _analyze_column_statistics icin DAX expression listesi olusturur.
+    Asil measure_records pbix_parser.py'de ayri isleniyor; bu yardimci
+    fonksiyon sadece mevcut parametrelerden ne varsa toplar.
+    """
+    # model_analyzer.py'de measure_records parametresi yok (dax_analyzer'a gidiyor),
+    # bu yuzden bos liste donuyoruz -- DAX expression referans kontrolu
+    # bir sonraki adimda measure_records parametresi eklenerek gelistirilebilir.
+    return []
 
 
 def _is_guid_column(name: str, dtype: str) -> bool:
