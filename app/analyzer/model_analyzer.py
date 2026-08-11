@@ -111,6 +111,7 @@ def analyze_model(
     kpi_records: list = None,
     calc_group_records: list = None,
     m_parameter_records: list = None,
+    measure_records: list = None,
 ) -> dict:
     result = {
         "tables": [],
@@ -276,7 +277,7 @@ def analyze_model(
             statistics_records=statistics_records,
             schema_records=schema_records,
             relationship_records=relationship_records,
-            measure_records=_extract_measure_records(m_parameter_records, calc_group_records),
+            measure_records=(measure_records or []),
         )
 
     except Exception as e:

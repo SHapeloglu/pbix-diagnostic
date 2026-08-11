@@ -113,6 +113,7 @@ def _parse_data_model(file_path: str):
         kpi_records=kpi_records,
         calc_group_records=calc_group_records,
         m_parameter_records=m_parameter_records,
+        measure_records=measure_records,
     )
     dax_result = analyze_dax(measure_records)
     return model_result, dax_result
