@@ -21,3 +21,10 @@ def get_settings() -> Settings:
     return Settings()
 
 settings = get_settings()
+
+PLANS = {
+    "free":     {"price": 0,  "quota_monthly": 3},
+    "starter":  {"price": 1,  "quota_monthly": 10},
+    "pro":      {"price": 9,  "quota_monthly": 50},
+    "business": {"price": 19, "quota_monthly": 200},
+}

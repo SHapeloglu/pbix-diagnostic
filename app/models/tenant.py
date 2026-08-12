@@ -10,6 +10,6 @@ class Tenant(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     api_key: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, default=lambda: str(uuid.uuid4()).replace("-",""))
     plan: Mapped[str] = mapped_column(String(50), default="free")
-    quota_monthly: Mapped[int] = mapped_column(Integer, default=10)
+    quota_monthly: Mapped[int] = mapped_column(Integer, default=3)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

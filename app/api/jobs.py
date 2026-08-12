@@ -8,6 +8,9 @@ from app.models.job import Job
 from app.models.user import User
 from app.schemas.job import JobStatusResponse, JobListResponse
 from app.api.deps import get_current_user
+from app.core.config import PLANS
+from sqlalchemy import func
+from datetime import datetime, timezone
 from app.worker.tasks import analyze_pbix_task
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -18,6 +21,25 @@ async def upload_pbix(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # Quota kontrolü
+    from app.models.tenant import Tenant
+    tenant_result = await db.execute(select(Tenant).where(Tenant.id == current_user.tenant_id))
+    tenant = tenant_result.scalar_one_or_none()
+    if tenant:
+        plan_info = PLANS.get(tenant.plan, PLANS["free"])
+        quota = plan_info["quota_monthly"]
+        now = datetime.now(timezone.utc)
+        usage_result = await db.execute(
+            select(func.count(Job.id)).where(
+                Job.tenant_id == current_user.tenant_id,
+                func.extract("year", Job.created_at) == now.year,
+                func.extract("month", Job.created_at) == now.month,
+            )
+        )
+        usage = usage_result.scalar() or 0
+        if usage >= quota:
+            raise HTTPException(status_code=429, detail=f"Monthly quota exceeded ({usage}/{quota}). Upgrade your plan.")
+
     if not file.filename.endswith(".pbix"):
         raise HTTPException(status_code=400, detail="Only .pbix files accepted")
 
