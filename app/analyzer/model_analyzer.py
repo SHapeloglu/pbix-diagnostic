@@ -112,6 +112,8 @@ def analyze_model(
     calc_group_records: list = None,
     m_parameter_records: list = None,
     measure_records: list = None,
+    perspective_records: list = None,
+    translation_records: list = None,
 ) -> dict:
     result = {
         "tables": [],
@@ -131,6 +133,8 @@ def analyze_model(
         "m_parameters": [],
         "exposed_connections": [],
         "column_statistics": {},
+        "perspectives": [],
+        "translations": [],
     }
 
     try:
@@ -270,6 +274,18 @@ def analyze_model(
                     "parameter": pname,
                     "detail":    detail,
                 })
+
+        # FEAT-4: Perspectives
+        for row in (perspective_records or []):
+            name = row.get("Name") or ""
+            if name:
+                result["perspectives"].append({"name": name, "description": row.get("Description", "")})
+
+        # FEAT-4: Translations
+        for row in (translation_records or []):
+            culture = row.get("Culture") or row.get("Name") or ""
+            if culture:
+                result["translations"].append({"culture": culture})
 
         # FEAT-5: VertiPaq kolon boyutu / kardinalite / unreferenced analizi
         # exposed_connections prensibiyle ayni sekilde: skor etkilemez, ayri bulgu.

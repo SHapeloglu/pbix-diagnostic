@@ -97,6 +97,14 @@ def _parse_data_model(file_path: str):
             m_parameter_records = model.m_parameters.to_dict("records")
         except Exception:
             m_parameter_records = []
+        try:
+            perspective_records = model.tmschema_perspectives.to_dict("records")
+        except Exception:
+            perspective_records = []
+        try:
+            translation_records = model.tmschema_translations.to_dict("records")
+        except Exception:
+            translation_records = []
 
     finally:
         del model
@@ -114,6 +122,8 @@ def _parse_data_model(file_path: str):
         calc_group_records=calc_group_records,
         m_parameter_records=m_parameter_records,
         measure_records=measure_records,
+        perspective_records=perspective_records,
+        translation_records=translation_records,
     )
     dax_result = analyze_dax(measure_records)
     return model_result, dax_result
