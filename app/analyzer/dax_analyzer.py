@@ -32,6 +32,27 @@ def analyze_dax(measure_records: list) -> dict:
             "avg_complexity": int(sum(m["risk_score"] for m in all_measures) / len(all_measures)) if all_measures else 0,
             "most_complex": sorted(all_measures, key=lambda x: x["risk_score"], reverse=True)[:5]
         }
+
+        # FEAT-8: Duplicate measure detection
+        # Tam expression'i normalize edip (bosluk/newline/kucuk-buyuk harf) grupla.
+        # Bos/NaN expression'lar (display folder ayraclar) filtrelenir.
+        expr_map = {}
+        for m in all_measures:
+            raw = m.get("_expression_full", "")
+            normalized = re.sub(r"\s+", "", raw).upper()
+            # Bos veya NaN olan expression'lari atla
+            if not normalized or normalized == "NAN":
+                continue
+            expr_map.setdefault(normalized, []).append(
+                {"name": m["name"], "table": m["table"]}
+            )
+        duplicate_groups = [
+            {"expression_fingerprint": k[:80], "measures": v}
+            for k, v in expr_map.items()
+            if len(v) > 1
+        ]
+        result["duplicate_measures"] = duplicate_groups
+        result["duplicate_measure_count"] = sum(len(g["measures"]) for g in duplicate_groups)
     except Exception as e:
         result["parse_error"] = str(e)
     return result
@@ -86,6 +107,7 @@ def _score_measure(name: str, expression: str, table: str) -> dict:
         "risk_level": "high" if score >= 70 else ("medium" if score >= 40 else "low"),
         "issues": issues,
         "expression_preview": expression[:200] + "..." if len(expression) > 200 else expression,
+        "_expression_full": expression,  # FEAT-8 icin, API response'a dahil edilmez
     }
 
 
