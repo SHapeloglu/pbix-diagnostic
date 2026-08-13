@@ -135,6 +135,7 @@ def analyze_model(
         "column_statistics": {},
         "perspectives": [],
         "translations": [],
+        "naming_issues": [],
     }
 
     try:
@@ -296,6 +297,13 @@ def analyze_model(
             measure_records=(measure_records or []),
         )
 
+        # FEAT-10: Naming conventions kontrolu -- skor etkilemez, ayri bulgu listesi.
+        result["naming_issues"] = _check_naming_conventions(
+            table_names=table_names,
+            schema_records=schema_records,
+            measure_records=(measure_records or []),
+        )
+
     except Exception as e:
         result["parse_error"] = str(e)
 
@@ -312,6 +320,41 @@ def _extract_measure_records(m_parameter_records, calc_group_records):
     # bu yuzden bos liste donuyoruz -- DAX expression referans kontrolu
     # bir sonraki adimda measure_records parametresi eklenerek gelistirilebilir.
     return []
+
+
+def _check_naming_conventions(table_names, schema_records, measure_records) -> list:
+    """
+    Tablo, kolon ve measure isimlerinde yaygin naming sorunlarini tespit eder.
+    Donus: [{"object_type": "table"|"column"|"measure", "name": ..., "table": ..., "issue": ...}]
+    """
+    import re
+    issues = []
+    SPECIAL_CHARS = re.compile(r"[#%$!@^&*+=|<>?]")
+
+    def check_name(name, object_type, table=None):
+        if not name or not isinstance(name, str):
+            return
+        if name != name.strip():
+            issues.append({"object_type": object_type, "name": name, "table": table,
+                           "issue": "Baslangic veya sonda bosluk var (trim edilmemis)"})
+        m = SPECIAL_CHARS.search(name)
+        if m:
+            issues.append({"object_type": object_type, "name": name, "table": table,
+                           "issue": f"Ozel karakter iceriyor: {m.group()}"})
+        if name.strip() and name.strip()[0].isdigit():
+            issues.append({"object_type": object_type, "name": name, "table": table,
+                           "issue": "Rakamla baslayan isim -- DAX referansi icin kose parantezi zorunlu"})
+        # Not: 1-2 karakter kurali kaldirildi -- Id, Il gibi meşru Turkce isimler
+        # cok fazla false positive uretiyordu.
+
+    for tname in (table_names or []):
+        check_name(tname, "table")
+    for row in (schema_records or []):
+        check_name(row.get("ColumnName", ""), "column", table=row.get("TableName", ""))
+    for row in (measure_records or []):
+        check_name(row.get("Name", ""), "measure", table=row.get("TableName", ""))
+
+    return issues
 
 
 def _is_guid_column(name: str, dtype: str) -> bool:
