@@ -38,9 +38,23 @@ def parse_pbix(file_path: str, temp_dir: str | None = None) -> dict:
 
 
 def _parse_data_model(file_path: str):
-    from pbixray import PBIXRay
+    from pbixray import PBIXRay, LiveConnectionError, NoEmbeddedModelError, PBIXRayError
+    try:
+        model = PBIXRay(file_path)
+    except LiveConnectionError:
+        raise ValueError(
+            "Bu dosya canli baglanti (Live Connection / DirectQuery) modeli iceriyor "
+            "ve gomulu bir DataModel barindirmiyor. "
+            "Lutfen Power BI Desktop'ta Import modunda kaydedilmis bir PBIX yukleyin."
+        )
+    except NoEmbeddedModelError:
+        raise ValueError(
+            "Bu dosya gomulu bir DataModel icermiyor (thin report). "
+            "Lutfen tam model iceren bir PBIX dosyasi yukleyin."
+        )
+    except PBIXRayError as e:
+        raise ValueError(f"PBIX dosyasi okunamadi: {e}")
 
-    model = PBIXRay(file_path)
 
     try:
         model_size_bytes = getattr(model, "size", 0) or 0
