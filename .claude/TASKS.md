@@ -20,22 +20,15 @@
 | FEAT-9 | Thin report / live-connection error | `a3a7b9e` | 2026-08-13 |
 | FEAT-10 | Naming conventions checks | `3fc359c` | 2026-08-13 |
 | BIZ-3 | Email notifications | `af802f1` | 2026-08-14 |
+| FEAT-11 | Formatting DataCategory | `3f2c31b` | 2026-08-14 |
 
-## Açık Görevler (rakip araştırması sonrası eklendi)
+## Açık Görevler
 
 | # | Görev | Öncelik | Durum |
 |---|---|---|---|
-| ~~FEAT-7~~ | ~~Referential integrity~~ | ~~1~~ | **REDDEDİLDİ** — DirectQuery-only, Import-mode gürültüsü |
-| ~~FEAT-11~~ | ~~Formatting kontrolü~~ | ~~5~~ | **ERTELENDİ** — pbixray 0.15.4 DataCategory expose etmiyor |
+| ~~FEAT-7~~ | ~~Referential integrity~~ | ~~1~~ | **YENİDEN AÇILDI** — dar kapsamlı bilgi bulgusu |
+| ~~FEAT-11~~ | ~~Formatting kontrolü~~ | ~~5~~ | **TAMAMLANDI** |
 | FEAT-12 | GitHub Action / MCP server | 6 | Uzun vadeli, stratejik karar bekleniyor |
 | BIZ-5 | User registration sistemi | 2 | Yapılmadı |
 | BIZ-6 | Stripe payment integration | 1 | Yapılmadı |
 | BIZ-7 | Admin panel (tenant yönetimi) | 2 | Yapılmadı |
-
-## Olası Sonraki Adımlar (talep gelmeden yapılmaz)
-
-- Email notifications templates (quota warning, etc.)
-- Kullanıcı kayıt/davet sistemi
-- Ödeme entegrasyonu (Stripe)
-- Admin paneli (tenant yönetimi)
-- BACKUP-1 / MONITOR-1

@@ -1,27 +1,20 @@
-# Oturum 10 (2026-08-14)
+# Oturum 11 (2026-08-14)
 
 ## Yapılanlar
 
-### 1. FEAT-11 (Formatting kontrolü) — pbixray uyumluluğu kontrol edildi
-- pbixray 0.15.4 **DataCategory expose etmiyor** → FEAT-11 ertelendi
-- Schema DataFrame sadece 3 kolon içeriyor: TableName, ColumnName, PandasDataType
-- Gelecekteki pbixray versiyonu DataCategory expose ettiğinde yeniden değerlendirilecek
-
-### 2. Email Notifications (BIZ-3) — Tamamlandı ✅
-- **app/utils/emails.py** oluşturuldu: Gmail SMTP üzerinden email gönderiş
-- **tasks.py** modify edildi: analyze_pbix_task sonunda completion email gönder
-- **config.py** güncellendi: EMAIL_ENABLED, EMAIL_FROM, GMAIL_APP_PASSWORD fields
-- Jinja2 templates: "analysis_complete" ve "quota_warning"
-- Flow: Job tamamlanınca user.email'e scores ile notification
-- Error handling: Email hatası analizi kırmaması sağlandı
-
-### 3. Git Commit
-- Commit: `af802f1` — "feat: email notifications on analysis completion"
+### FEAT-11 (Formatting DataCategory) — Tamamlandı ✅
+- **Sorun çözüldü:** pbixray 0.15.4 `model.tmschema_columns` aracılığıyla DataCategory expose ediyor
+- `pbix_parser.py`: tmschema_columns_records extraction eklendi
+- `model_analyzer.py`: `_analyze_formatting()` helper fonksiyonu eklendi
+- Flow: tmschema_columns → DataCategory kontrol → formatting_info (skor bağımsız)
+- Baseline: 133/1200/66, skorlar korunmuş (80/100/100/90) ✅
+- Commit: `3f2c31b` — "feat: FEAT-11 formatting DataCategory analysis"
 
 ## Açık Görevler
 
 | # | Görev | Öncelik | Durum |
 |---|---|---|---|
+| FEAT-7 | Referential integrity (dar kapsamlı) | 3 | Yeniden açılabilir |
 | FEAT-12 | GitHub Action / MCP server | 6 | Uzun vadeli, stratejik karar |
 | BIZ-5 | User registration sistemi | 2 | Yapılmadı |
 | BIZ-6 | Stripe payment integration | 1 | Yapılmadı |
@@ -30,14 +23,13 @@
 ## Baseline
 
 - Test dosyası: SatisSemantikModel.pbix
-- Tablolar: 133 (eski: 128)
-- Kolonlar: 1200 (eski: 1163)
-- İlişkiler: 66 (eski: 68)
+- Tablolar: 133
+- Kolonlar: 1200
+- İlişkiler: 66
 - Skorlar: model:80 / DAX:100 / visuals:100 / size:90 ✅
 
-## Yeni Oturuma Hazır Başlangıç
+## Sonra Yapılacak
 
-1. CLAUDE.md oku
-2. ARCHITECTURE.md oku
-3. SESSION.md'deki son oturuma bak (Oturum 10)
-4. TASKS.md'deki açık görevleri kontrol et
+- FEAT-7 (dar kapsamlı bilgi bulgusu)
+- BIZ-5/6/7 (ödeme sistemi)
+- FEAT-12 (stratejik karar)
