@@ -114,6 +114,7 @@ def analyze_model(
     measure_records: list = None,
     perspective_records: list = None,
     translation_records: list = None,
+    tmschema_columns_records: list = None,
 ) -> dict:
     result = {
         "tables": [],
@@ -297,6 +298,11 @@ def analyze_model(
             measure_records=(measure_records or []),
         )
 
+        # FEAT-11: Formatting kontrolü -- DataCategory bilgisi
+        result["formatting_info"] = _analyze_formatting(
+            tmschema_columns_records=tmschema_columns_records,
+        )
+
         # FEAT-10: Naming conventions kontrolu -- skor etkilemez, ayri bulgu listesi.
         result["naming_issues"] = _check_naming_conventions(
             table_names=table_names,
@@ -380,3 +386,34 @@ def _star_schema_score(fact_tables, dim_tables, many_to_many) -> int:
     if len(fact_tables) > 3:
         score -= 10
     return max(0, min(100, score))
+
+
+def _analyze_formatting(tmschema_columns_records: list = None) -> dict:
+    """
+    FEAT-11: DataCategory analizi.
+    Columns'ün formatlanmış olup olmadığını kontrol et.
+    Bilgi bulgusu, skor etkisiz.
+    """
+    result = {
+        "columns_with_datacategory": [],
+        "datacategory_summary": {},
+    }
+    
+    if not tmschema_columns_records:
+        return result
+    
+    category_count = {}
+    for row in tmschema_columns_records:
+        cat = row.get("DataCategory")
+        if cat and cat.lower() not in ("none", ""):
+            table_name = row.get("TableName", "")
+            col_name = row.get("Name", "")
+            result["columns_with_datacategory"].append({
+                "table": table_name,
+                "column": col_name,
+                "category": cat,
+            })
+            category_count[cat] = category_count.get(cat, 0) + 1
+    
+    result["datacategory_summary"] = category_count
+    return result
