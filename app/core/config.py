@@ -12,9 +12,13 @@ class Settings(BaseSettings):
     MAX_UPLOAD_MB: int = 512
     CELERY_WORKERS: int = 3  # gercek sunucu: 4 cekirdek / 8 GB (eskiden 8 vCPU/30 GB varsayilmisti)
     ENVIRONMENT: str = "production"
+    EMAIL_ENABLED: bool = True
+    EMAIL_FROM: str = "pbix-diagnostic@gmail.com"
+    GMAIL_APP_PASSWORD: str = ""
 
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
 @lru_cache()
 def get_settings() -> Settings:

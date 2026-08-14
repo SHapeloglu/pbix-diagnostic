@@ -6,6 +6,7 @@ from app.analyzer.pbix_parser import parse_pbix
 # Sync DB işlemleri için psycopg2 kullanıyoruz (Celery sync context)
 import psycopg2
 from app.core.config import settings
+from app.utils.emails import send_email
 
 def get_sync_conn():
     # asyncpg URL'ini psycopg2 formatına çevir
@@ -68,6 +69,30 @@ def analyze_pbix_task(self, job_id: str, tenant_id: str, file_path: str):
                     (datetime.utcnow(), job_id))
         conn.commit()
         should_delete_file = True
+        
+        # Kullanıcıya email gönder (eğer user_id varsa)
+        try:
+            # User email'i al
+            cur.execute("SELECT u.email FROM users u WHERE u.id = (SELECT user_id FROM jobs WHERE id=%s)", (job_id,))
+            user_row = cur.fetchone()
+            if user_row and user_row[0]:
+                user_email = user_row[0]
+                scores = result["scores"]
+                context = {
+                    "filename": result.get("filename", "Your file"),
+                    "scores": scores,
+                    "results_url": f"https://pbixdia.powerbi.com.tr/results/{job_id}"
+                }
+                send_email(
+                    to_email=user_email,
+                    subject="Your PBIX Analysis is Complete",
+                    template_name="analysis_complete",
+                    context=context
+                )
+        except Exception as e:
+            # Email gönderme hatası analiz'i kırmasın
+            import logging
+            logging.error(f"Failed to send completion email for job {job_id}: {e}")
 
     except Exception as exc:
         conn.rollback()
