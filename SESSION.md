@@ -1,27 +1,43 @@
-## Oturum 5 (2026-08-10)
+# Oturum 10 (2026-08-14)
 
-### Yapılanlar
+## Yapılanlar
 
-1. **CAP-1 tamamlandı — ikinci gerçek dosyayla kapasite doğrulaması:**
-   SatisSemantikModel.pbix (180 MB) Windows'tan scp ile sunucuya aktarıldı.
-   Sonuçlar: Süre 21.19s, Peak RSS 499.47 MB (2.77x), warnings: []
+### 1. FEAT-11 (Formatting kontrolü) — pbixray uyumluluğu kontrol edildi
+- pbixray 0.15.4 **DataCategory expose etmiyor** → FEAT-11 ertelendi
+- Schema DataFrame sadece 3 kolon içeriyor: TableName, ColumnName, PandasDataType
+- Gelecekteki pbixray versiyonu DataCategory expose ettiğinde yeniden değerlendirilecek
 
-   İki veri noktasıyla doğrulanan:
-   - Oran ~2.8-3x (lineer, öngörülebilir)
-   - 300 MB üst sınır için ekstrapolasyon: ~870 MB peak RSS — güvenli
-   - Pratik üst sınır: 300 MB+ nadiren görülür, büyük projeler datamart'lara bölünüyor
+### 2. Email Notifications (BIZ-3) — Tamamlandı ✅
+- **app/utils/emails.py** oluşturuldu: Gmail SMTP üzerinden email gönderiş
+- **tasks.py** modify edildi: analyze_pbix_task sonunda completion email gönder
+- **config.py** güncellendi: EMAIL_ENABLED, EMAIL_FROM, GMAIL_APP_PASSWORD fields
+- Jinja2 templates: "analysis_complete" ve "quota_warning"
+- Flow: Job tamamlanınca user.email'e scores ile notification
+- Error handling: Email hatası analizi kırmaması sağlandı
 
-2. CLAUDE.md, ARCHITECTURE.md, TASKS.md güncellendi.
+### 3. Git Commit
+- Commit: `af802f1` — "feat: email notifications on analysis completion"
 
-### Açık görevler
-- FEAT-4: Düşük öncelik, talep gelmeden başlama
-- BIZ-1/BIZ-2: Kullanıcı kararı bekliyor
-- BACKUP-1/MONITOR-1: Kullanıcıya önerildi, henüz onaylanmadı
+## Açık Görevler
+
+| # | Görev | Öncelik | Durum |
+|---|---|---|---|
+| FEAT-12 | GitHub Action / MCP server | 6 | Uzun vadeli, stratejik karar |
+| BIZ-5 | User registration sistemi | 2 | Yapılmadı |
+| BIZ-6 | Stripe payment integration | 1 | Yapılmadı |
+| BIZ-7 | Admin panel (tenant yönetimi) | 2 | Yapılmadı |
+
+## Baseline
+
+- Test dosyası: SatisSemantikModel.pbix
+- Tablolar: 133 (eski: 128)
+- Kolonlar: 1200 (eski: 1163)
+- İlişkiler: 66 (eski: 68)
+- Skorlar: model:80 / DAX:100 / visuals:100 / size:90 ✅
 
 ## Yeni Oturuma Hazır Başlangıç
 
-Önce yap:
 1. CLAUDE.md oku
 2. ARCHITECTURE.md oku
-3. TASKS.md'de ilk tamamlanmamış görevi bul
-4. SESSION.md'deki son oturuma bak (bu dosya, Oturum 5)
+3. SESSION.md'deki son oturuma bak (Oturum 10)
+4. TASKS.md'deki açık görevleri kontrol et
