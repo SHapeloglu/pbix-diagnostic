@@ -302,6 +302,11 @@ def analyze_model(
         result["formatting_info"] = _analyze_formatting(
             tmschema_columns_records=tmschema_columns_records,
         )
+        
+        # FEAT-7: Referential Integrity kontrolü (dar kapsamlı)
+        result["referential_integrity_info"] = _analyze_referential_integrity(
+            relationship_records=relationship_records,
+        )
 
         # FEAT-10: Naming conventions kontrolu -- skor etkilemez, ayri bulgu listesi.
         result["naming_issues"] = _check_naming_conventions(
@@ -416,4 +421,36 @@ def _analyze_formatting(tmschema_columns_records: list = None) -> dict:
             category_count[cat] = category_count.get(cat, 0) + 1
     
     result["datacategory_summary"] = category_count
+    return result
+
+
+def _analyze_referential_integrity(relationship_records: list = None) -> dict:
+    """
+    FEAT-7: Referential Integrity kontrol (dar kapsamlı).
+    Sadece DirectQuery bağlamındaki ilişkilerde RelyOnReferentialIntegrity=False
+    olanları raporla. Bilgi bulgusu, skor etkisiz.
+    """
+    result = {
+        "relationships_without_referential_integrity": [],
+    }
+    
+    if not relationship_records:
+        return result
+    
+    for row in relationship_records:
+        # DirectQuery bağlamı tespiti: CrossFilteringBehavior
+        cross_filter = str(row.get("CrossFilteringBehavior", "")).lower()
+        rely_on_ri = row.get("RelyOnReferentialIntegrity")
+        
+        # DirectQuery-specific kontrol
+        if "directquery" in cross_filter or rely_on_ri is False:
+            result["relationships_without_referential_integrity"].append({
+                "from_table": row.get("FromTableName", ""),
+                "from_column": row.get("FromColumnName", ""),
+                "to_table": row.get("ToTableName", ""),
+                "to_column": row.get("ToColumnName", ""),
+                "rely_on_referential_integrity": rely_on_ri,
+                "cross_filtering": row.get("CrossFilteringBehavior", ""),
+            })
+    
     return result
