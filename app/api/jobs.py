@@ -37,8 +37,9 @@ async def upload_pbix(
             )
         )
         usage = usage_result.scalar() or 0
-        if usage >= quota:
-            raise HTTPException(status_code=429, detail=f"Monthly quota exceeded ({usage}/{quota}). Upgrade your plan.")
+        # FEEDBACK PHASE: Quota kontrolü devre dışı, unlimited
+        # if usage >= quota:
+        #     raise HTTPException(status_code=429, detail=f"Monthly quota exceeded ({usage}/{quota}). Upgrade your plan.")
 
     if not file.filename.endswith(".pbix"):
         raise HTTPException(status_code=400, detail="Only .pbix files accepted")
