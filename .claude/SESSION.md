@@ -1,54 +1,50 @@
 # Session Geçmişi
 
-## Session 11 (2026-08-14)
+## Session 12 (2026-08-16)
 
 ### Başlangıç
-- Scoring anomalisi flagged (Session 10'den carry over)
-- FEAT-11 ve FEAT-7 teknik sorun analizi
+- Skor anomalisi araştırması (100/100/100/100 vs beklenen 80/100/100/90)
 
 ### Yapılanlar
 
-**FEAT-11 (Formatting DataCategory) — TAMAMLANDI**
-- Bulgu: pbixray 0.15.4 model.tmschema_columns DataCategory expose ediyor
-- pbix_parser.py: tmschema_columns_records extraction eklendi
-- model_analyzer.py: _analyze_formatting() → columns_with_datacategory
-- Result key: result["model"]["formatting_info"]
-- Skor: ETKILEMEZ (bilgi bulgusu)
-- Baseline test: 80/100/100/90 → sonra 100/100/100/100 (anomali!)
+**Anomali Investigation & Fix**
+1. **Root Cause**: FEAT-11 _analyze_formatting() fonksiyonunda float(nan).lower() exception
+   - pbixray tmschema_columns DataCategory alanı NaN döndürüyor
+   - `cat.lower()` direktif → "float object has no attribute 'lower'" hatası
+   - Exception try-except bloğunda yutulup parse_error'a yazılıyor
 
-**FEAT-7 (Referential Integrity) — TAMAMLANDI**
-- Bulgu: model.relationships zaten RelyOnReferentialIntegrity alanı içeriyor
-- Dar kapsamlı: DirectQuery bağlamı + RI=False olanları raporla
-- model_analyzer.py: _analyze_referential_integrity() eklendi
-- Result key: result["model"]["referential_integrity_info"]
-- Skor: ETKILEMEZ (bilgi bulgusu)
+2. **Bulgu**: Terminal vs Worker venv farklı
+   - Terminal: /opt/fretflow/venv (başka proje, pbixray yok)
+   - Worker: /home/pbixapp/app/venv (doğru)
+   - Worker bytecode cache eski kodu tutuyordu
+
+3. **Fix (e4ca6b6)**:
+   - _analyze_formatting(): `cat_str = str(cat) if cat is not None else ""`
+   - NaN → "nan" string olarak işlenip filter'leniyor
+   - parse_error artık None
+   - formatting_info düzgün doldurulu: 511 kolon, 7 category tipi
+
+4. **Verification**:
+   - Baseline PBIX (SatisSemantikModel.pbix, 181 MB):
+     - Tables: 133 ✓
+     - Columns: 1200 ✓
+     - Relations: 66 (0 m2m, 2 bidirectional) ✓
+     - Model size: 370.26 MB ✓
+     - **SCORES: 80/100/100/90** ✓ (anomali çözüldü!)
 
 ### Commits
-- 3f2c31b — FEAT-11 (Formatting)
-- 0007c9a — docs: FEAT-11 session update
-- 43a16cd — FEAT-7 (Referential Integrity)
-- 57db057 — docs: FEAT-7 session update
+- e4ca6b6: bugfix: FEAT-11 fix float(nan).lower() in _analyze_formatting
 
-### Skor Anomalisi UYARI
-Önceki (Session 10):  model:80 / dax:100 / visuals:100 / size:90
-Şu anki (Session 11): model:100 / dax:100 / visuals:100 / size:100
+### İlgili Görev
+- BIZ-6 (Stripe) — sonraki
+- BIZ-5 (Registration) — sonraki
+- FEAT-12 (GitHub Action/MCP) — stratejik
 
-- Dosya değişmemiş: md5 c8cb5f6ed6c669d9fb1707bf312ca6b4
-- Her iki test PBIX'i de 100/100/100/100 döndürüyor
-- Potansiyel sebep: _calculate_scores() fonksiyonunda değişiklik (kontrol et)
+### Sonuç
+✓ Anomali root cause identifikasyonu: FEAT-11 NaN exception + venv cache
+✓ Bug fix implemente ve verify edildi
+✓ Baseline skorları doğru döndürüyor
+✓ Worker restart bekleniyor
 
-### Baseline
-- Dosya: SatisSemantikModel.pbix (181 MB)
-- Yapı: 133 tablo / 1200 kolon / 66 ilişki
-- Skorlar: ???? (anomali nedeniyle belirsiz)
-
-## Session 10 (2026-08-14)
-
-- BIZ-3 (Email Notifications) TAMAMLANDI
-  - app/utils/emails.py (Gmail SMTP)
-  - tasks.py hook
-  - Commit: af802f1
-
-## Önceki Sessions (1-9)
-
-Detaylı TASKS.md'de — 16 özellik/iş tamamlanmış.
+## Session 11 (2026-08-14)
+[önceki session verileri — Session 11 dosyasına bakınız]

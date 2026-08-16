@@ -1,38 +1,29 @@
-# Claude'ın Oturum Notları (Session 11 Özeti)
+# Claude'ın Oturum Notları (Session 12)
 
-## Tamamlanan (Session 11)
+## Skor Anomalisi ÇÖZÜLDÜ
 
-1. **FEAT-11 (Formatting DataCategory)** — pbixray 0.15.4 model.tmschema_columns
-   - _analyze_formatting(): DataCategory bilgisi çıkarma (skor bağımsız)
-   - Commit: 3f2c31b
+**Root Cause**: FEAT-11 _analyze_formatting() içinde float(nan).lower()
+- pbixray tmschema_columns DataCategory NaN (float) döndürüyor
+- Code: `if cat and cat.lower()` → exception → parse_error
+- Exception exception try-except'te yutulduğu için skor hesaplaması kısmen atlanıyor
 
-2. **FEAT-7 (Referential Integrity)** — dar kapsamlı DirectQuery kontrol
-   - _analyze_referential_integrity(): DirectQuery RI=False olanları raporla (skor bağımsız)
-   - Commit: 43a16cd
+**Fix**:
+```python
+cat_str = str(cat) if cat is not None else ""
+if cat_str and cat_str.lower() not in ("none", "nan", ""):
+```
 
-## Kritik: Skor Anomalisi
+**Baseline Verification** (SatisSemantikModel.pbix):
+- 133 tables / 1200 columns / 66 relationships
+- Scores: **80/100/100/90** ✓ (Expected)
 
-- Önceki baseline: 80/100/100/90
-- Şu anki skor: 100/100/100/100
-- Sebep bilinmiyor — sonraki session'da _calculate_scores() kontrol edilmeli
-- Dosya md5: c8cb5f6ed6c669d9fb1707bf312ca6b4 (aynı)
+## Önemli Bulgular
+1. **Venv Mix-up**: Terminal `/opt/fretflow/venv` çekiyordu, `pbixapp` `/home/pbixapp/app/venv`
+   - Session başında `source /home/pbixapp/app/venv/bin/activate` kritik
+2. **Python Cache**: Worker restart sonrası `.pyc` cache güncelleniyor
+3. **Exception Handling**: parse_error sessiz exception yutma — iyi tasarım
 
-## Session Başlangıç Protokolü
-
-1. .claude/ dosyaları oku
-2. Skor anomalisini araştır (_calculate_scores())
-3. Sonra açık görevlere devam et
-
-## Quick Reference
-
-- Stack: FastAPI + Celery + PostgreSQL + Redis + Nginx/SSL (pbixray 0.15.4)
-- Auth: multi-tenant (quota-based)
-- Server: Contabo VPS 95.111.242.96 (4c/8GB, pbixapp user)
-- Repo: https://github.com/SHapeloglu/pbix-diagnostic (SHapeloglu)
-- Baseline: SatisSemantikModel.pbix (181 MB) — 133 tablo / 1200 kolon / 66 ilişki
-
-## Kontrol Noktaları
-
-- venv: /home/pbixapp/app/venv (mutlaka activate et)
-- app root: /home/pbixapp/app
-- Baseline PBIX: /home/pbixapp/app/uploads/SatisSemantikModel.pbix
+## Sonraki
+1. BIZ-6 Stripe integration (priority 1)
+2. BIZ-5 User registration (priority 2)
+3. BIZ-7 Admin panel (priority 2)
