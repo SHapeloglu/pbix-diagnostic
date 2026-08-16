@@ -410,13 +410,14 @@ def _analyze_formatting(tmschema_columns_records: list = None) -> dict:
     category_count = {}
     for row in tmschema_columns_records:
         cat = row.get("DataCategory")
-        if cat and cat.lower() not in ("none", ""):
+        cat_str = str(cat) if cat is not None else ""
+        if cat_str and cat_str.lower() not in ("none", "nan", ""):
             table_name = row.get("TableName", "")
             col_name = row.get("Name", "")
             result["columns_with_datacategory"].append({
                 "table": table_name,
                 "column": col_name,
-                "category": cat,
+                "category": cat_str,
             })
             category_count[cat] = category_count.get(cat, 0) + 1
     
