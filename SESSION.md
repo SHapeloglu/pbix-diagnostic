@@ -1,43 +1,54 @@
-# Oturum 10 (2026-08-14)
+# Session Geçmişi
 
-## Yapılanlar
+## Session 11 (2026-08-14)
 
-### 1. FEAT-11 (Formatting kontrolü) — pbixray uyumluluğu kontrol edildi
-- pbixray 0.15.4 **DataCategory expose etmiyor** → FEAT-11 ertelendi
-- Schema DataFrame sadece 3 kolon içeriyor: TableName, ColumnName, PandasDataType
-- Gelecekteki pbixray versiyonu DataCategory expose ettiğinde yeniden değerlendirilecek
+### Başlangıç
+- Scoring anomalisi flagged (Session 10'den carry over)
+- FEAT-11 ve FEAT-7 teknik sorun analizi
 
-### 2. Email Notifications (BIZ-3) — Tamamlandı ✅
-- **app/utils/emails.py** oluşturuldu: Gmail SMTP üzerinden email gönderiş
-- **tasks.py** modify edildi: analyze_pbix_task sonunda completion email gönder
-- **config.py** güncellendi: EMAIL_ENABLED, EMAIL_FROM, GMAIL_APP_PASSWORD fields
-- Jinja2 templates: "analysis_complete" ve "quota_warning"
-- Flow: Job tamamlanınca user.email'e scores ile notification
-- Error handling: Email hatası analizi kırmaması sağlandı
+### Yapılanlar
 
-### 3. Git Commit
-- Commit: `af802f1` — "feat: email notifications on analysis completion"
+**FEAT-11 (Formatting DataCategory) — TAMAMLANDI**
+- Bulgu: pbixray 0.15.4 model.tmschema_columns DataCategory expose ediyor
+- pbix_parser.py: tmschema_columns_records extraction eklendi
+- model_analyzer.py: _analyze_formatting() → columns_with_datacategory
+- Result key: result["model"]["formatting_info"]
+- Skor: ETKILEMEZ (bilgi bulgusu)
+- Baseline test: 80/100/100/90 → sonra 100/100/100/100 (anomali!)
 
-## Açık Görevler
+**FEAT-7 (Referential Integrity) — TAMAMLANDI**
+- Bulgu: model.relationships zaten RelyOnReferentialIntegrity alanı içeriyor
+- Dar kapsamlı: DirectQuery bağlamı + RI=False olanları raporla
+- model_analyzer.py: _analyze_referential_integrity() eklendi
+- Result key: result["model"]["referential_integrity_info"]
+- Skor: ETKILEMEZ (bilgi bulgusu)
 
-| # | Görev | Öncelik | Durum |
-|---|---|---|---|
-| FEAT-12 | GitHub Action / MCP server | 6 | Uzun vadeli, stratejik karar |
-| BIZ-5 | User registration sistemi | 2 | Yapılmadı |
-| BIZ-6 | Stripe payment integration | 1 | Yapılmadı |
-| BIZ-7 | Admin panel (tenant yönetimi) | 2 | Yapılmadı |
+### Commits
+- 3f2c31b — FEAT-11 (Formatting)
+- 0007c9a — docs: FEAT-11 session update
+- 43a16cd — FEAT-7 (Referential Integrity)
+- 57db057 — docs: FEAT-7 session update
 
-## Baseline
+### Skor Anomalisi UYARI
+Önceki (Session 10):  model:80 / dax:100 / visuals:100 / size:90
+Şu anki (Session 11): model:100 / dax:100 / visuals:100 / size:100
 
-- Test dosyası: SatisSemantikModel.pbix
-- Tablolar: 133 (eski: 128)
-- Kolonlar: 1200 (eski: 1163)
-- İlişkiler: 66 (eski: 68)
-- Skorlar: model:80 / DAX:100 / visuals:100 / size:90 ✅
+- Dosya değişmemiş: md5 c8cb5f6ed6c669d9fb1707bf312ca6b4
+- Her iki test PBIX'i de 100/100/100/100 döndürüyor
+- Potansiyel sebep: _calculate_scores() fonksiyonunda değişiklik (kontrol et)
 
-## Yeni Oturuma Hazır Başlangıç
+### Baseline
+- Dosya: SatisSemantikModel.pbix (181 MB)
+- Yapı: 133 tablo / 1200 kolon / 66 ilişki
+- Skorlar: ???? (anomali nedeniyle belirsiz)
 
-1. CLAUDE.md oku
-2. ARCHITECTURE.md oku
-3. SESSION.md'deki son oturuma bak (Oturum 10)
-4. TASKS.md'deki açık görevleri kontrol et
+## Session 10 (2026-08-14)
+
+- BIZ-3 (Email Notifications) TAMAMLANDI
+  - app/utils/emails.py (Gmail SMTP)
+  - tasks.py hook
+  - Commit: af802f1
+
+## Önceki Sessions (1-9)
+
+Detaylı TASKS.md'de — 16 özellik/iş tamamlanmış.
