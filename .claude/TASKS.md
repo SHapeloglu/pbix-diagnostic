@@ -22,7 +22,7 @@
 | BIZ-3 | Business | Email notifications (Gmail SMTP) | af802f1 | 2026-08-14 |
 | FEAT-11 | Analyzer | Formatting (DataCategory) | 3f2c31b | 2026-08-14 |
 | FEAT-7 | Analyzer | Referential Integrity (DirectQuery) | 43a16cd | 2026-08-14 |
-| BUGFIX-1 | Code | FEAT-11 float(nan) exception | e4ca6b6 | 2026-08-16 |
+| BUGFIX-1 | Code | FEAT-11 NaN exception fix | e4ca6b6 | 2026-08-16 |
 
 ## Açık Görevler (Öncelik Sırası)
 
@@ -35,11 +35,5 @@
 
 ## Bilinen Sorunlar
 
-| Sorun | Durum | Not |
-|-------|-------|-----|
-| Skor Anomalisi | ÇÖZÜLDÜ | FEAT-11 NaN exception → e4ca6b6'da fix |
-
-## Session 12 Özeti
-- Skor anomalisi root cause: float(nan).lower() in _analyze_formatting
-- Fix: NaN'ı string'e dönüştür ve "nan" filter'le
-- Baseline verification: 133t/1200c/66r → 80/100/100/90 ✓
+ÇÖZÜLDÜ (Session 12):
+- Skor Anomalisi: FEAT-11 float(nan).lower() → e4ca6b6
