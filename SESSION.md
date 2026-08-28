@@ -1,54 +1,57 @@
 # Session Geçmişi
 
-## Session 11 (2026-08-14)
+## Session 12 (2026-08-16)
 
 ### Başlangıç
-- Scoring anomalisi flagged (Session 10'den carry over)
-- FEAT-11 ve FEAT-7 teknik sorun analizi
+- Skor anomalisi araştırması (100/100/100/100 vs beklenen 80/100/100/90)
 
 ### Yapılanlar
 
-**FEAT-11 (Formatting DataCategory) — TAMAMLANDI**
-- Bulgu: pbixray 0.15.4 model.tmschema_columns DataCategory expose ediyor
-- pbix_parser.py: tmschema_columns_records extraction eklendi
-- model_analyzer.py: _analyze_formatting() → columns_with_datacategory
-- Result key: result["model"]["formatting_info"]
-- Skor: ETKILEMEZ (bilgi bulgusu)
-- Baseline test: 80/100/100/90 → sonra 100/100/100/100 (anomali!)
+**Skor Anomalisi Root Cause & Fix**
+1. **Investigation**: 
+   - Terminal test ile baseline PBIX doğru skorlar döndürüyor (80/100/100/90)
+   - Canlı API (100/100/100/100) anormallik gösteriyor
+   - pbixray 0.15.4 ile her test aynı kodu çalıştırıyor
 
-**FEAT-7 (Referential Integrity) — TAMAMLANDI**
-- Bulgu: model.relationships zaten RelyOnReferentialIntegrity alanı içeriyor
-- Dar kapsamlı: DirectQuery bağlamı + RI=False olanları raporla
-- model_analyzer.py: _analyze_referential_integrity() eklendi
-- Result key: result["model"]["referential_integrity_info"]
-- Skor: ETKILEMEZ (bilgi bulgusu)
+2. **Root Cause**: FEAT-11 _analyze_formatting() NaN exception
+   - pbixray tmschema_columns DataCategory alanı float(nan) döndürüyor
+   - Code: `if cat and cat.lower()` → exception
+   - Exception try-except bloğunda yutulup parse_error'a yazılıyor
+   - Sonrası fonksiyonlar (FEAT-7, naming_issues) kısmen atlanıyor
+
+3. **Bulgu**: Venv karmaşası
+   - Terminal: `/opt/fretflow/venv` (başka proje)
+   - Worker: `/home/pbixapp/app/venv` (doğru)
+   - Session başında `source /home/pbixapp/app/venv/bin/activate` kritik
+
+4. **Fix (Commit e4ca6b6)**:
+```python
+   cat_str = str(cat) if cat is not None else ""
+   if cat_str and cat_str.lower() not in ("none", "nan", ""):
+```
+   - float(nan) → "nan" string'e dönüştürülüyor
+   - "nan" filter'leniyor
+   - parse_error artık None
+   - formatting_info doğru doldurulu: 511 kolon
+
+5. **Baseline Verification** (SatisSemantikModel.pbix):
+   - Tables: 133 ✓
+   - Columns: 1200 ✓
+   - Relations: 66 (m2m:0, bidirectional:2) ✓
+   - Model size: 370.26 MB ✓
+   - **SCORES: 80/100/100/90** ✓ (Anomali çözüldü!)
 
 ### Commits
-- 3f2c31b — FEAT-11 (Formatting)
-- 0007c9a — docs: FEAT-11 session update
-- 43a16cd — FEAT-7 (Referential Integrity)
-- 57db057 — docs: FEAT-7 session update
+- e4ca6b6: bugfix: FEAT-11 fix float(nan).lower() in _analyze_formatting
 
-### Skor Anomalisi UYARI
-Önceki (Session 10):  model:80 / dax:100 / visuals:100 / size:90
-Şu anki (Session 11): model:100 / dax:100 / visuals:100 / size:100
+### Session Hızlı Özet
+- ✓ Anomali root cause: pbixray NaN döndürüyor, `.lower()` patlıyor
+- ✓ Fix: NaN → string, "nan" filter
+- ✓ Baseline verification: 133t/1200c/66r → 80/100/100/90
+- ✓ Worker restart + cache temizle
 
-- Dosya değişmemiş: md5 c8cb5f6ed6c669d9fb1707bf312ca6b4
-- Her iki test PBIX'i de 100/100/100/100 döndürüyor
-- Potansiyel sebep: _calculate_scores() fonksiyonunda değişiklik (kontrol et)
+## Session 11 (2026-08-14)
+FEAT-11 + FEAT-7 implementasyonu (skor anomalisi başladığı yer)
 
-### Baseline
-- Dosya: SatisSemantikModel.pbix (181 MB)
-- Yapı: 133 tablo / 1200 kolon / 66 ilişki
-- Skorlar: ???? (anomali nedeniyle belirsiz)
-
-## Session 10 (2026-08-14)
-
-- BIZ-3 (Email Notifications) TAMAMLANDI
-  - app/utils/emails.py (Gmail SMTP)
-  - tasks.py hook
-  - Commit: af802f1
-
-## Önceki Sessions (1-9)
-
-Detaylı TASKS.md'de — 16 özellik/iş tamamlanmış.
+## Önceki Sessions (1-10)
+16 özellik + 2 business task tamamlandı
