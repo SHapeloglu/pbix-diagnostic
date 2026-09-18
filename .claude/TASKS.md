@@ -1,6 +1,6 @@
 # Tüm Görevler & Durum
 
-## Tamamlanan (18 Task)
+## Tamamlanan (19 Task)
 
 | # | Kategori | Görev | Commit | Tarih |
 |---|----------|-------|--------|-------|
@@ -22,33 +22,25 @@
 | BIZ-3 | Business | Email notifications (Gmail SMTP) | af802f1 | 2026-08-14 |
 | FEAT-11 | Analyzer | Formatting (DataCategory) | 3f2c31b | 2026-08-14 |
 | FEAT-7 | Analyzer | Referential Integrity (DirectQuery) | 43a16cd | 2026-08-14 |
+| BUGFIX-1 | Code | FEAT-11 NaN exception fix | e4ca6b6 | 2026-08-16 |
 
 ## Açık Görevler (Öncelik Sırası)
 
+> **Not (Session 13):** Ürün ücretsiz feedback fazında. BIZ-6 ertelendi.
+> **Not (Session 14):** TabularEditor/Microsoft BPA kural setleri incelendi (bkz. learnings).
+> FEAT-13 ve FEAT-14 backlog'dan aktif geliştirmeye alındı.
+
 | # | Kategori | Görev | Öncelik | Durum |
 |---|----------|-------|---------|-------|
-| BIZ-6 | Business | Stripe payment integration | 1 | Tasarımda |
-| BIZ-5 | Business | User registration sistemi | 2 | Tasarımda |
-| BIZ-7 | Business | Admin panel (tenant yönetimi) | 2 | Tasarımda |
-| FEAT-12 | Dev Tools | GitHub Action / MCP server | 6 | Stratejik |
+| BIZ-5 | Business | User registration sistemi (email+şifre, zorunlu doğrulama) | 1 | Aktif — tasarım tamamlandı, kod yazılacak |
+| FEAT-14 | Analyzer | Import-mode referential integrity (gerçek FK/PK veri uyuşmazlığı) | 2 | Yeni — TabularEditor BPA'dan esinlenildi |
+| FEAT-13 | Analyzer | BPA-inspired kural motoru (~20 DAX/naming/format kontrolü) | 3 | Yeni — TabularEditor BPA'dan esinlenildi |
+| BIZ-7 | Business | Admin panel (tenant yönetimi) | 4 | Tasarımda |
+| BIZ-6 | Business | Stripe payment integration | 5 (ertelendi 3-6 ay) | Tasarımda |
+
+Diğer stratejik/düşük öncelikli maddeler → bkz. `backlog.md`
 
 ## Bilinen Sorunlar
 
-| Sorun | Durum | Not |
-|-------|-------|-----|
-| Skor Anomalisi | AÇIK | 80→100/90→100, sebep bilinmiyor, Session 11'de tespit |
-| Scoring Logic | KONTROL GEREK | _calculate_scores() fonksiyonu audit edilmeli |
-
-## Sonra Yapılacak (Sırasına göre)
-
-1. Skor anomalisi araştırması (Session 12 başında) — URGENT
-2. BIZ-6 Stripe (payment gateway)
-3. BIZ-5 User registration (email invite + auth)
-4. BIZ-7 Admin panel (tenant management)
-5. FEAT-12 (stratejik karar — GitHub Action vs MCP)
-
-## Business Model Kararı
-
-- Ürün: Tamamen free (feedback phase)
-- Stripe/Payments: 3-6 ay sonra (BIZ-6)
-- Quota enforcement: Şu an disabled (BIZ-3 via 83ab595)
+ÇÖZÜLDÜ (Session 12):
+- Skor Anomalisi: FEAT-11 float(nan).lower() → e4ca6b6
