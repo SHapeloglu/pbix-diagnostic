@@ -26,12 +26,19 @@
 
 ## Açık Görevler (Öncelik Sırası)
 
+> **Not (Session 13):** Ürün ücretsiz feedback fazında. BIZ-6 ertelendi.
+> **Not (Session 14):** TabularEditor/Microsoft BPA kural setleri incelendi (bkz. learnings).
+> FEAT-13 ve FEAT-14 backlog'dan aktif geliştirmeye alındı.
+
 | # | Kategori | Görev | Öncelik | Durum |
 |---|----------|-------|---------|-------|
-| BIZ-6 | Business | Stripe payment integration | 1 | Tasarımda |
-| BIZ-5 | Business | User registration sistemi | 2 | Tasarımda |
-| BIZ-7 | Business | Admin panel (tenant yönetimi) | 2 | Tasarımda |
-| FEAT-12 | Dev Tools | GitHub Action / MCP server | 6 | Stratejik |
+| BIZ-5 | Business | User registration sistemi (email+şifre, zorunlu doğrulama) | 1 | Aktif — tasarım tamamlandı, kod yazılacak |
+| FEAT-14 | Analyzer | Import-mode referential integrity (gerçek FK/PK veri uyuşmazlığı) | 2 | Yeni — TabularEditor BPA'dan esinlenildi |
+| FEAT-13 | Analyzer | BPA-inspired kural motoru (~20 DAX/naming/format kontrolü) | 3 | Yeni — TabularEditor BPA'dan esinlenildi |
+| BIZ-7 | Business | Admin panel (tenant yönetimi) | 4 | Tasarımda |
+| BIZ-6 | Business | Stripe payment integration | 5 (ertelendi 3-6 ay) | Tasarımda |
+
+Diğer stratejik/düşük öncelikli maddeler → bkz. `backlog.md`
 
 ## Bilinen Sorunlar
 
