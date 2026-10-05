@@ -11,7 +11,9 @@ def send_email(to_email, subject, template_name, context):
     Send email via Gmail SMTP
     """
     try:
-        from app.config import EMAIL_FROM, GMAIL_APP_PASSWORD
+        from app.core.config import settings
+        EMAIL_FROM = settings.EMAIL_FROM
+        GMAIL_APP_PASSWORD = settings.GMAIL_APP_PASSWORD
         
         if not GMAIL_APP_PASSWORD:
             logger.warning(f"Email not sent (GMAIL_APP_PASSWORD not configured): {subject}")
@@ -41,6 +43,21 @@ Your quota is running low this month.
 Used: {{ used }}/{{ limit }}
 
 Upgrade to continue: {{ pricing_url }}
+
+Thanks,
+pbix-diagnostic Team
+""",
+            "verify_email": """Hello,
+
+Thanks for registering with pbix-diagnostic!
+
+Please verify your email address by clicking the link below:
+
+{{ verification_url }}
+
+This link will expire in 24 hours.
+
+If you did not create this account, you can safely ignore this email.
 
 Thanks,
 pbix-diagnostic Team

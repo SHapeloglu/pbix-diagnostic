@@ -1,3 +1,4 @@
+import os
 
 # Email Configuration
 EMAIL_ENABLED = True

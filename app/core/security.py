@@ -1,3 +1,4 @@
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -23,3 +24,12 @@ def decode_token(token: str) -> Optional[dict]:
         return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     except JWTError:
         return None
+
+# Email verification token (BIZ-5)
+def generate_verification_token() -> str:
+    """Generate a secure random verification token (URL-safe, 32 bytes)"""
+    return secrets.token_urlsafe(32)
+
+def get_verification_token_expiry() -> datetime:
+    """Verification token valid for 24 hours"""
+    return datetime.utcnow() + timedelta(hours=24)
